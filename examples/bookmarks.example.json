@@ -1,0 +1,17 @@
+[
+  {
+    "path": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer",
+    "name": "Explorer",
+    "added_at": "2026-01-01T09:00:00+08:00"
+  },
+  {
+    "path": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion",
+    "name": "CurrentVersion",
+    "added_at": "2026-01-01T09:00:00+08:00"
+  },
+  {
+    "path": "HKEY_CURRENT_USER\\Environment",
+    "name": "Environment",
+    "added_at": "2026-01-01T09:00:00+08:00"
+  }
+]

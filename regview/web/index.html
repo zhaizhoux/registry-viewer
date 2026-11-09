@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="auto">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>regview · 注册表查看器</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div id="app">
+
+  <header class="topbar">
+    <div class="brand">
+      <svg class="logo" viewBox="0 0 24 24" aria-hidden="true">
+        <rect x="2.5" y="3.5" width="8" height="7" rx="1.5"></rect>
+        <rect x="13.5" y="3.5" width="8" height="7" rx="1.5"></rect>
+        <rect x="8" y="13.5" width="8" height="7" rx="1.5"></rect>
+        <path d="M6.5 10.5v3h11v-3M12 13.5v0"></path>
+      </svg>
+      <span class="brand-name">regview</span>
+      <span class="badge readonly-badge">只读</span>
+    </div>
+
+    <div class="pathbar">
+      <button id="btn-up" class="icon-btn" title="上级 (Alt+↑)" aria-label="上级">
+        <svg viewBox="0 0 24 24"><path d="M12 19V7M6 13l6-6 6 6"></path></svg>
+      </button>
+      <input id="path-input" type="text" spellcheck="false" autocomplete="off"
+             placeholder="例如 HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion" aria-label="注册表路径">
+      <button id="btn-go" class="btn primary">转到</button>
+      <button id="btn-refresh" class="icon-btn" title="刷新 (F5)" aria-label="刷新">
+        <svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6"></path></svg>
+      </button>
+    </div>
+
+    <div class="top-actions">
+      <select id="view-select" class="select" title="注册表视图">
+        <option value="default">默认视图</option>
+        <option value="64">64 位视图</option>
+        <option value="32">32 位视图</option>
+      </select>
+      <button id="btn-theme" class="icon-btn" title="切换主题" aria-label="切换主题">
+        <svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9z"></path></svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="toolbar">
+    <div class="searchbox">
+      <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="10.5" cy="10.5" r="6.5"></circle><path d="M15.5 15.5L21 21"></path>
+      </svg>
+      <input id="search-input" type="text" spellcheck="false" autocomplete="off"
+             placeholder="搜索子键名 / 值名 / 值数据 (Ctrl+F)" aria-label="搜索">
+      <select id="search-scope" class="select compact" title="搜索范围">
+        <option value="both">键 + 值</option>
+        <option value="keys">仅子键名</option>
+        <option value="values">仅值</option>
+      </select>
+      <select id="search-root" class="select compact" title="搜索起点"></select>
+      <button id="btn-search" class="btn">搜索</button>
+      <button id="btn-search-stop" class="btn" hidden>停止</button>
+    </div>
+    <div class="tool-actions">
+      <button id="btn-bookmark" class="btn" title="收藏当前键">收藏</button>
+      <button id="btn-bookmarks" class="btn">收藏夹 <span id="bookmark-count" class="count">0</span></button>
+      <span class="divider"></span>
+      <button id="btn-export-reg" class="btn" data-format="reg">.reg</button>
+      <button id="btn-export-json" class="btn" data-format="json">JSON</button>
+      <button id="btn-export-csv" class="btn" data-format="csv">CSV</button>
+      <button id="btn-copy" class="btn" title="复制当前路径">复制路径</button>
+    </div>
+  </div>
+
+  <main class="workspace" id="workspace">
+    <aside class="panel tree-panel">
+      <div class="panel-head">
+        <span class="panel-title">注册表树</span>
+        <span id="tree-count" class="panel-meta"></span>
+      </div>
+      <div id="tree" class="tree" role="tree" aria-label="注册表键树"></div>
+    </aside>
+
+    <div id="splitter" class="splitter" role="separator" aria-orientation="vertical"></div>
+
+    <section class="panel values-panel">
+      <div class="panel-head">
+        <span id="values-title" class="panel-title">值</span>
+        <span id="values-meta" class="panel-meta"></span>
+      </div>
+      <div id="node-error" class="error-bar" hidden></div>
+      <div class="table-wrap">
+        <table id="values-table">
+          <thead>
+            <tr><th class="col-name">名称</th><th class="col-type">类型</th><th class="col-data">数据</th><th class="col-size">大小</th></tr>
+          </thead>
+          <tbody id="values-body"></tbody>
+        </table>
+        <div id="values-empty" class="empty" hidden></div>
+      </div>
+      <div id="detail" class="detail" hidden>
+        <div class="detail-head">
+          <div>
+            <span id="detail-name" class="detail-name"></span>
+            <span id="detail-type" class="type-badge"></span>
+            <span id="detail-size" class="detail-size"></span>
+          </div>
+          <div class="detail-actions">
+            <button id="btn-copy-value" class="btn small">复制数据</button>
+            <button id="btn-close-detail" class="icon-btn small" aria-label="关闭详情">
+              <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+            </button>
+          </div>
+        </div>
+        <div class="detail-body">
+          <div id="detail-expanded" class="detail-expanded" hidden></div>
+          <pre id="detail-data" class="pre"></pre>
+          <div id="detail-hex-wrap" hidden>
+            <div class="detail-label">十六进制视图</div>
+            <pre id="detail-hex" class="pre hex"></pre>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <aside id="search-panel" class="drawer" hidden>
+    <div class="drawer-head">
+      <div><div class="drawer-title">搜索结果</div><div id="search-summary" class="drawer-sub"></div></div>
+      <button id="btn-close-search" class="icon-btn small" aria-label="关闭">
+        <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+      </button>
+    </div>
+    <div id="search-results" class="drawer-list"></div>
+  </aside>
+
+  <aside id="bookmark-panel" class="drawer" hidden>
+    <div class="drawer-head">
+      <div><div class="drawer-title">收藏夹</div><div class="drawer-sub">保存在 ~/.regview/bookmarks.json</div></div>
+      <button id="btn-close-bookmarks" class="icon-btn small" aria-label="关闭">
+        <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+      </button>
+    </div>
+    <div id="bookmark-list" class="drawer-list"></div>
+  </aside>
+
+  <footer class="statusbar">
+    <span id="status-dot" class="status-dot"></span>
+    <span id="status-text">就绪</span>
+    <span class="spacer"></span>
+    <span id="status-view"></span>
+    <span class="sep">·</span>
+    <span>只读模式，不会修改注册表</span>
+    <span class="sep">·</span>
+    <span>regview</span>
+  </footer>
+
+  <div id="toast" class="toast" hidden></div>
+  <div id="no-token" class="gate" hidden>
+    <div class="gate-card">
+      <h1>需要访问 token</h1>
+      <p>请使用启动命令输出的完整地址打开本页（形如 <code>http://127.0.0.1:端口/?token=…</code>）。</p>
+      <p class="gate-sub">token 每次启动随机生成，用于阻止其它网页读取本机注册表。</p>
+    </div>
+  </div>
+</div>
+<script src="/app.js"></script>
+</body>
+</html>

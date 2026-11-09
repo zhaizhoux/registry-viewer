@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: ${{ matrix.os }} / Python ${{ matrix.python }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python: ["3.9", "3.11", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+      - name: Run unit tests
+        run: python -m unittest discover -s tests -t . -v
+      - name: Smoke test CLI (roots)
+        run: python -m regview --version
+      - name: Smoke test local server
+        shell: bash
+        run: |
+          python - <<'PY'
+          import threading, urllib.request, json
+          from regview.server import create_server
+          from tests.fake import FakeRegistry, sample_tree
+          server = create_server(port=0, token="ci-token", registry=FakeRegistry(sample_tree()), quiet=True)
+          thread = threading.Thread(target=server.serve_forever, daemon=True)
+          thread.start()
+          try:
+              req = urllib.request.Request(
+                  "http://127.0.0.1:%d/api/health" % server.server_port,
+                  headers={"X-Regview-Token": "ci-token"})
+              with urllib.request.urlopen(req, timeout=5) as response:
+                  data = json.load(response)
+              assert data["readonly"] is True, data
+              print("server OK:", data)
+          finally:
+              server.shutdown()
+              server.server_close()
+          PY

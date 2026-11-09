@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "regview"
+version = "1.0.0"
+description = "Read-only graphical Windows Registry viewer with a local browser UI and CLI"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "zhaizhoux" }]
+keywords = ["registry", "winreg", "windows", "viewer", "readonly", "gui"]
+classifiers = [
+    "Environment :: Web Environment",
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: Microsoft :: Windows",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: System :: Systems Administration",
+]
+
+[project.urls]
+Homepage = "https://github.com/zhaizhoux/registry-viewer"
+Repository = "https://github.com/zhaizhoux/registry-viewer"
+Issues = "https://github.com/zhaizhoux/registry-viewer/issues"
+
+[project.scripts]
+regview = "regview.cli:main"
+
+[tool.setuptools]
+packages = ["regview"]
+include-package-data = true
+
+[tool.setuptools.package-data]
+regview = ["web/*"]
